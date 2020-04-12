@@ -1,9 +1,9 @@
 fork of donbowman/ubuntu-secure-boot which i try to adapt for debian buster
 
-ubuntu-secure-boot package
+debian-secure-boot package
 --------------------------
 
-The stock Ubuntu 15.10 installation only implements secure boot just enough
+The stock Debian 10 installation only implements secure boot just enough
 to get a Microsoft-signed shim in place.  It does nothing to actually secure
 the boot process.  This package can help users do so.
 
@@ -39,7 +39,7 @@ Install instructions
 
 2.  Install the package as normal:
 
-    dpkg -i ubuntu-secure-boot_<version>_amd64.deb
+    dpkg -i debian-secure-boot_<version>_amd64.deb
 
     If prompted about missing dependencies, install them as normal using
     apt-get.
@@ -51,11 +51,11 @@ Install instructions
 Digital signatures will be maintained whenever you install new kernels or
 update initramfs.
 
-Features of ubuntu-secure-boot
+Features of debian-secure-boot
 ------------------------------
 
 * Self-signed bootloader files: take control over your boot process by
-  stripping Canonical / Microsoft signatures from your boot files and signing
+  stripping Debian / Microsoft signatures from your boot files and signing
   everything yourself.
 
 * Summary of files that are digitally signed and verified during the boot
@@ -67,7 +67,7 @@ Features of ubuntu-secure-boot
   * Linux initramfs / initrd (self-signed)
   * Linux kernel modules (using existing Canonical signatures)
 
-* Self-signed private keys are stored in /etc/ubuntu-secure-boot/keys and
+* Self-signed private keys are stored in /etc/debian-secure-boot/keys and
   protected by a passphrase.
 
 * UEFI Secure Boot self-signed key pairs are generated and used to sign the
@@ -97,4 +97,4 @@ Features of ubuntu-secure-boot
 * The initramfs is automatically re-signed whenever update-initramfs is run.
 
 * Linux kernel module signing enforcement is automatically enabled by default.
-  This can be controlled from /etc/default/grub.d/ubuntu-secure-boot.cfg.
+  This can be controlled from /etc/default/grub.d/debian-secure-boot.cfg.
