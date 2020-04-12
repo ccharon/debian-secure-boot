@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for ubuntu-secure-boot
+# postinst script for debian-secure-boot
 #
 # see: dh_installdeb(1)
 
@@ -22,9 +22,9 @@ set -e
 . /usr/share/debconf/confmodule
 
 do_divert() {
-    if [ "$(dpkg-divert --listpackage $1)" != ubuntu-secure-boot ]
+    if [ "$(dpkg-divert --listpackage $1)" != debian-secure-boot ]
     then
-        dpkg-divert --add --package ubuntu-secure-boot --rename \
+        dpkg-divert --add --package debian-secure-boot --rename \
             --divert "$2" "$1"
     fi
     [ ! -e "$1" -o -L "$1" ] && ln -sf "$3" "$1"
@@ -38,19 +38,19 @@ case "$1" in
         #
         # NOTE: Original hooks must be in originally-named post*.d directory in
         # order to work.
-        mkdir -p /etc/ubuntu-secure-boot/postinst.d
-        mkdir -p /etc/ubuntu-secure-boot/postrm.d
+        mkdir -p /etc/debian-secure-boot/postinst.d
+        mkdir -p /etc/debian-secure-boot/postrm.d
         do_divert /etc/kernel/postinst.d/zz-update-grub \
-            /etc/ubuntu-secure-boot/postinst.d/zz-update-grub \
-            /usr/share/ubuntu-secure-boot/postinst.d/zz-update-grub
+            /etc/debian-secure-boot/postinst.d/zz-update-grub \
+            /usr/share/debian-secure-boot/postinst.d/zz-update-grub
         do_divert /etc/kernel/postrm.d/zz-update-grub \
-            /etc/ubuntu-secure-boot/postrm.d/zz-update-grub \
-            /usr/share/ubuntu-secure-boot/postrm.d/zz-update-grub
+            /etc/debian-secure-boot/postrm.d/zz-update-grub \
+            /usr/share/debian-secure-boot/postrm.d/zz-update-grub
         # Also divert script for generating GRUB menu entries so we can loosen
         # security as desired.
         do_divert /etc/grub.d/10_linux \
-            /etc/ubuntu-secure-boot/10_linux.distrib \
-            /usr/share/ubuntu-secure-boot/10_linux
+            /etc/debian-secure-boot/10_linux.distrib \
+            /usr/share/debian-secure-boot/10_linux
 
         # Run update-grub to re-install a standalone signed GRUB image...
         # Note that this will just run the underlying GRUB command if the user

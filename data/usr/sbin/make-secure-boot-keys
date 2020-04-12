@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Run this script after installing the package to make your private keys for
-# secure booting.  They are stored in /etc/ubuntu-secure-boot/keys.  This
+# secure booting.  They are stored in /etc/debian-secure-boot/keys.  This
 # allows convenient signing of new kernels, GRUB versions, etc.  It's
 # recommended that your /etc partition is encrypted.
 
@@ -10,7 +10,7 @@ set -e
 EntropySetup() {
     # It's helpful to run a background process to come up with entropy.  We do
     # so by generating lots of disk activity.  This is particularly handy on
-    # systems that otherwise lack entropy (e.g. a clean Ubuntu install in a
+    # systems that otherwise lack entropy (e.g. a clean Debian install in a
     # virtual machine).
     echo
     printf "%s" "Run a background process to generate entropy? [n] "
@@ -84,14 +84,14 @@ unset STARTED_ENTROPY
 trap Cleanup EXIT INT TERM
 
 # Some particularly platform-specific variables:
-BOOTLOADER_ID=ubuntu             # EFI directory on EFI partition
+BOOTLOADER_ID=Debian             # EFI directory on EFI partition
 
-echo "Private keys will be stored in /etc/ubuntu-secure-boot/keys"
+echo "Private keys will be stored in /etc/debian-secure-boot/keys"
 echo "WARNING:  It's recommended that you put your /etc" \
      "directory on an encrypted file system."
 
 # Create and secure the key directory
-KEYDIR=/etc/ubuntu-secure-boot/keys
+KEYDIR=/etc/debian-secure-boot/keys
 mkdir -p "$KEYDIR"
 chmod 700 "$KEYDIR"
 chown root:root "$KEYDIR"
@@ -99,7 +99,7 @@ export GNUPGHOME="$KEYDIR"
 
 # If keys already exist, ask if they want to make new ones.
 HASGPGKEY=0
-if gpg -K | grep -q "Ubuntu secure boot EFI key" ; then
+if gpg -K | grep -q "Debian secure boot EFI key" ; then
     HASGPGKEY=1
 fi
 HASUEFIKEY=0
@@ -161,7 +161,7 @@ if [ $SKIPKEYGEN -eq 0 ] ; then
         Key-Length: 4096
         Key-Usage: sign
         Name-Real: $USERFULLNAME
-        Name-Comment: Ubuntu secure boot EFI key
+        Name-Comment: Debian secure boot EFI key
         Name-Email: $USEREMAIL
         Expire-Date: 0
         $PPPARAM

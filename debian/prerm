@@ -1,5 +1,5 @@
 #!/bin/sh
-# prerm script for ubuntu-secure-boot
+# prerm script for debian-secure-boot
 #
 # see: dh_installdeb(1)
 
@@ -18,7 +18,7 @@ set -e
 
 do_divert() {
     [ -L "$1" ] && rm "$1"
-    dpkg-divert --remove --package ubuntu-secure-boot --rename \
+    dpkg-divert --remove --package debian-secure-boot --rename \
             --divert "$2" "$1"
 }
 
@@ -28,13 +28,13 @@ case "$1" in
         # instead of in the postrm for a conffile by ConfigPackages:
         # https://wiki.debian.org/ConfigPackages/
         do_divert /etc/kernel/postinst.d/zz-update-grub \
-            /etc/ubuntu-secure-boot/postinst.d/zz-update-grub
+            /etc/debian-secure-boot/postinst.d/zz-update-grub
         do_divert /etc/kernel/postrm.d/zz-update-grub \
-            /etc/ubuntu-secure-boot/postrm.d/zz-update-grub
+            /etc/debian-secure-boot/postrm.d/zz-update-grub
         do_divert /etc/grub.d/10_linux \
-            /etc/ubuntu-secure-boot/10_linux.distrib
-        rmdir /etc/ubuntu-secure-boot/postinst.d
-        rmdir /etc/ubuntu-secure-boot/postrm.d
+            /etc/debian-secure-boot/10_linux.distrib
+        rmdir /etc/debian-secure-boot/postinst.d
+        rmdir /etc/debian-secure-boot/postrm.d
     ;;
 
     upgrade|deconfigure)

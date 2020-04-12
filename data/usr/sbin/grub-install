@@ -20,11 +20,10 @@
 # signature files, let GRUB go to a rescue prompt, and then turn off
 # check_signatures.
 
-
 # Load debconf: used for prompting for passphrase.
 . /usr/share/debconf/confmodule
 
-KEYDIR=/etc/ubuntu-secure-boot/keys
+KEYDIR=/etc/debian-secure-boot/keys
 export GNUPGHOME="$KEYDIR"
 #tty=$(tty)
 #if [ $? -eq 0 ]
@@ -34,209 +33,194 @@ export GNUPGHOME="$KEYDIR"
 #fi
 
 log() {
-    logger -t grub-install "$*"
-    >&2 echo "$*"
+  logger -t grub-install "$*"
+  echo >&2 "$*"
 }
 
 set -e
 
 CheckSig() {
-    # Called with file (and --sign-all optionall)
-    if [ "$2" = --sign-all ]
-    then
-	log "Force rebuild of sig for $1 due to --sign-all"
-        return 1
-    fi
-    # Now, we should find $file, ${file}.sig. If .sig is not present,
-    # or wrong size, rebuild
-    if [ ! -f ${file}.sig ]
-    then
-        log "Force rebuild of sig for $1 due to missing .sig file"
-	return 1
-    fi
-    size=$(stat -c %s ${file}.sig)
-    if [ $size -lt 512 -o $size -gt 4096 ]
-    then
-        log "Force rebuild of sig for $1 due to incorrect size"
-	return 1
-    fi
+  # Called with file (and --sign-all optionall)
+  if [ "$2" = --sign-all ]; then
+    log "Force rebuild of sig for $1 due to --sign-all"
+    return 1
+  fi
 
-    gpg --no-default-keyring --keyring $KEYDIR/pubring.kbx --verify ${file}.sig >/dev/null 2>&1
-    if [ $? != 0 ]
-    then
-        log "Force rebuild of sig for $1 due to invalid pre-existing signature"
-	return 1
-    fi
+  # Now, we should find $file, ${file}.sig. If .sig is not present,
+  # or wrong size, rebuild
+  if [ ! -f ${file}.sig ]; then
+    log "Force rebuild of sig for $1 due to missing .sig file"
+    return 1
+  fi
 
-    return 0
+  size=$(stat -c %s ${file}.sig)
+
+  if [ $size -lt 512 -o $size -gt 4096 ]; then
+    log "Force rebuild of sig for $1 due to incorrect size"
+    return 1
+  fi
+
+  gpg --no-default-keyring --keyring $KEYDIR/pubring.kbx --verify ${file}.sig >/dev/null 2>&1
+
+  if [ $? != 0 ]; then
+    log "Force rebuild of sig for $1 due to invalid pre-existing signature"
+    return 1
+  fi
+
+  return 0
 }
 
 runsbsign() {
-    # On Ubuntu 16.04, sbsign crashes randomly; this appears to be a
-    # regression from Ubuntu 15.10:
-    #
-    #     https://bugs.launchpad.net/ubuntu/+source/sbsigntool/+bug/1574372
-    #     sbsign crashes randomly
-    for attemptnum in $( seq 1 50 ) ; do
-        if sbsign "$@" ; then
-            return 0
-        fi
-        log "sbsign failed -- retry"
-    done
-    echo "sbsign failed -- give up!"
-    return 1
+  if sbsign "$@"; then
+    return 0
+  fi
+
+  echo "sbsign failed"
+  return 1
 }
 
 # We can't probe key directory unless we're root.
 if ! [ $(id -u) = 0 ]; then
-    log "ERROR: grub-install must be run as root."
-    exit 1
+  log "ERROR: grub-install must be run as root."
+  exit 1
 fi
 
 # Some particularly platform-specific variables:
-EFI_FILENAME=securegrubx64.efi   # EFI image name
-BOOTLOADER_ID=ubuntu             # EFI directory on EFI partition
-FORMAT=x86_64-efi                # grub --format
-
+EFI_FILENAME=securegrubx64.efi # EFI image name
+BOOTLOADER_ID=Debian           # EFI directory on EFI partition
+FORMAT=x86_64-efi              # grub --format
 
 # Temporary file cleanup
-Cleanup () {
-    [ -n "$GPGPUBLICKEY" ] && rm -f "$GPGPUBLICKEY" ]
-    [ -n "$GRUBSTAGE" ] && rm -rf "$GRUBSTAGE"
-    [ -n "$PEMPRIVATEKEY" ] && rm -f "$PEMPRIVATEKEY"
-    [ -n "$NULL" ] && rm -f "$NULL"
+Cleanup() {
+  [ -n "$GPGPUBLICKEY" ] && rm -f "$GPGPUBLICKEY" ]
+  [ -n "$GRUBSTAGE" ] && rm -rf "$GRUBSTAGE"
+  [ -n "$PEMPRIVATEKEY" ] && rm -f "$PEMPRIVATEKEY"
+  [ -n "$NULL" ] && rm -f "$NULL"
 }
 
-GetPassphrase() {	
-    # Ask user for passphrase: note that we die if return code is 30,	
-    # indicating that the user won't be asked the question:	
-    db_settitle ubuntu-secure-boot/title	
-    db_reset ubuntu-secure-boot/passphrase	
-    db_fset ubuntu-secure-boot/passphrase seen false	
-    db_input critical ubuntu-secure-boot/passphrase	
-    db_go	
-    db_get ubuntu-secure-boot/passphrase	
-    PASSPHRASE="$RET"	
-    # Always reset the password so that it doesn't remain behind:	
-    db_reset ubuntu-secure-boot/passphrase	
-}	
-	
-# Ask if the user wants to retry entering passphrase:	
-RetryPassphrase() {	
-    db_settitle ubuntu-secure-boot/title	
-    db_reset ubuntu-secure-boot/retrypassphrase	
-    db_fset ubuntu-secure-boot/retrypassphrase seen false	
-    db_input critical ubuntu-secure-boot/retrypassphrase	
-    db_go	
-    db_get ubuntu-secure-boot/retrypassphrase	
-    if [ "$RET" != true ] ; then	
-        exit 1	
-    fi	
+GetPassphrase() {
+  # Ask user for passphrase: note that we die if return code is 30,
+  # indicating that the user won't be asked the question:
+  db_settitle debian-secure-boot/title
+  db_reset debian-secure-boot/passphrase
+  db_fset debian-secure-boot/passphrase seen false
+  db_input critical debian-secure-boot/passphrase
+  db_go
+  db_get debian-secure-boot/passphrase
+  PASSPHRASE="$RET"
+  # Always reset the password so that it doesn't remain behind:
+  db_reset debian-secure-boot/passphrase
+}
+
+# Ask if the user wants to retry entering passphrase:
+RetryPassphrase() {
+  db_settitle debian-secure-boot/title
+  db_reset debian-secure-boot/retrypassphrase
+  db_fset debian-secure-boot/retrypassphrase seen false
+  db_input critical debian-secure-boot/retrypassphrase
+  db_go
+  db_get debian-secure-boot/retrypassphrase
+  if [ "$RET" != true ]; then
+    exit 1
+  fi
 }
 
 # Cache: if the result will be the same return 0, else 1
 # this prevents rebuilding grub modules many times (once
 # per kernel installed)
 CheckCache() {
-    if [ "$SECURE_BOOT_SIGN_ALL" = 1 -o "$1" = --sign-all ]
-    then
-        log "grub-install: cache invalidated due to SECURE_BOOT_SIGN_ALL or --sign-all"
-        return 1
-    fi
+  if [ "$SECURE_BOOT_SIGN_ALL" = 1 -o "$1" = --sign-all ]; then
+    log "grub-install: cache invalidated due to SECURE_BOOT_SIGN_ALL or --sign-all"
+    return 1
+  fi
 
-    ## is /etc/ubuntu-secure-boot/grub.cfg unchanged?
-    ## is GPGPUBLICKEY unchanged?
-    if [ ! -d /etc/ubuntu-secure-boot/cache ]
-    then
-        log "grub-install cache: first run, rebuild"
-        mkdir -p /etc/ubuntu-secure-boot/cache
-        return 1
+  ## is /etc/debian-secure-boot/grub.cfg unchanged?
+  ## is GPGPUBLICKEY unchanged?
+  if [ ! -d /etc/debian-secure-boot/cache ]; then
+    log "grub-install cache: first run, rebuild"
+    mkdir -p /etc/debian-secure-boot/cache
+    return 1
+  fi
+  if [ ! -f /etc/debian-secure-boot/cache/grub.cfg ]; then
+    log "grub-install cache: no previous grub.cfg, rebuild"
+    return 1
+  fi
+  if [ ! -f /etc/debian-secure-boot/cache/grub.pubkey ]; then
+    log "grub-install cache: no previous grub.pubkey, rebuild"
+    return 1
+  fi
+  cmp "$GPGPUBLICKEY" /etc/debian-secure-boot/cache/grub.pubkey
+  if [ $? != 0 ]; then
+    log "grub install cache: GPG key changed, rebuild"
+    return 1
+  fi
+  if [ -f /etc/debian-secure-boot/grub.cfg ]; then
+    cmp /etc/debian-secure-boot/grub.cfg /etc/debian-secure-boot/cache/grub.cfg
+    if [ $? != 0 ]; then
+      log "grub install cache: change in grub.cfg, rebuild"
+      return 1
     fi
-    if [ ! -f /etc/ubuntu-secure-boot/cache/grub.cfg ]
-    then
-        log "grub-install cache: no previous grub.cfg, rebuild"
-        return 1
-    fi
-    if [ ! -f /etc/ubuntu-secure-boot/cache/grub.pubkey ]
-    then
-        log "grub-install cache: no previous grub.pubkey, rebuild"
-        return 1
-    fi
-    cmp "$GPGPUBLICKEY" /etc/ubuntu-secure-boot/cache/grub.pubkey
-    if [ $? != 0 ]
-    then
-        log "grub install cache: GPG key changed, rebuild"
-        return 1
-    fi
-    if [ -f /etc/ubuntu-secure-boot/grub.cfg ]
-    then
-        cmp /etc/ubuntu-secure-boot/grub.cfg /etc/ubuntu-secure-boot/cache/grub.cfg
-        if [ $? != 0 ]
-        then
-            log "grub install cache: change in grub.cfg, rebuild"
-            return 1
-        fi
-    fi
-    log "grub install cache: no changes found, do not rebuld grub initramfs"
-    return 0
+  fi
+  log "grub install cache: no changes found, do not rebuld grub initramfs"
+  return 0
 }
 
 BuildGrubRamfs() {
-    set -e
+  set -e
 
-#    # Test signing to make sure passphrase is ok, also to
-#    # fetch it into the gpg-agent cache
-#    # We use a file for the output rather than /dev/null
-#    # since it does a chmod 644 after its done!
-#    until : | gpg --pinentry-mode ask --yes -u "$KEYID" -o "$NULL" -as -
-#    do
-#        rm -f "$NULL"
-#	echo "Incorrect passphrase, retry"
-#        sleep 1
-#    done
-    rm -f "$NULL"
+  #    # Test signing to make sure passphrase is ok, also to
+  #    # fetch it into the gpg-agent cache
+  #    # We use a file for the output rather than /dev/null
+  #    # since it does a chmod 644 after its done!
+  #    until : | gpg --pinentry-mode ask --yes -u "$KEYID" -o "$NULL" -as -
+  #    do
+  #        rm -f "$NULL"
+  #	echo "Incorrect passphrase, retry"
+  #        sleep 1
+  #    done
+  rm -f "$NULL"
 
-    # We have to sign all GRUB files (e.g. modules) with gpg.  Currently,
-    # grub-mkstandalone - while otherwise being the ideal tool to use
-    # here - does not support doing this.  Therefore, we skip it and use
-    # an alternate GRUB utility that calls the internal
-    # grub_install_copy_files function.  The easiest one is grub-mknetdir.
+  # We have to sign all GRUB files (e.g. modules) with gpg.  Currently,
+  # grub-mkstandalone - while otherwise being the ideal tool to use
+  # here - does not support doing this.  Therefore, we skip it and use
+  # an alternate GRUB utility that calls the internal
+  # grub_install_copy_files function.  The easiest one is grub-mknetdir.
 
-    # Use grub-mknetdir to assemble all the GRUB files (this is the most
-    # simple, least invasive method to call grub_install_copy_files).
-    log "Gathering GRUB modules... (please disregard any messages" \
-	"regarding network configuration..."
-    grub-mknetdir --net-directory="$GRUBSTAGE"
-    # We aren't interested in EFI image or grub.cfg from grub-mknetdir:
-    rm -f "$GRUBSTAGE"/boot/grub/*/*.efi
-    rm -f "$GRUBSTAGE"/boot/grub/*/grub.cfg
+  # Use grub-mknetdir to assemble all the GRUB files (this is the most
+  # simple, least invasive method to call grub_install_copy_files).
+  log "Gathering GRUB modules... (please disregard any messages" \
+    "regarding network configuration..."
+  grub-mknetdir --net-directory="$GRUBSTAGE"
+  # We aren't interested in EFI image or grub.cfg from grub-mknetdir:
+  rm -f "$GRUBSTAGE"/boot/grub/*/*.efi
+  rm -f "$GRUBSTAGE"/boot/grub/*/grub.cfg
 
-    # Copy GRUB configuration; don't fail if it doesn't exist (this could
-    # could happen on an initial GRUB installation):
-    set +e
-    cp /etc/ubuntu-secure-boot/grub.cfg "$GRUBSTAGE/boot/grub/grub.cfg"
-    set -e
+  # Copy GRUB configuration; don't fail if it doesn't exist (this could
+  # could happen on an initial GRUB installation):
+  set +e
+  cp /etc/debian-secure-boot/grub.cfg "$GRUBSTAGE/boot/grub/grub.cfg"
+  set -e
 
-    # Sign GRUB files
-    log "Signing GRUB modules... (this will take a minute)"
-    find "$GRUBSTAGE"/boot -type f -print0 | xargs -0 -n 1 \
-	gpg -v --yes -u "$KEYID" --detach-sign
+  # Sign GRUB files
+  log "Signing GRUB modules... (this will take a minute)"
+  find "$GRUBSTAGE"/boot -type f -print0 | xargs -0 -n 1 \
+    gpg -v --yes -u "$KEYID" --detach-sign
 
-    # Make memdisk/tar image:
-    log "Creating memdisk..."
-    tar --create --directory "$GRUBSTAGE" \
-	--file "$GRUBSTAGE/memdisk.tar" boot
+  # Make memdisk/tar image:
+  log "Creating memdisk..."
+  tar --create --directory "$GRUBSTAGE" \
+    --file "$GRUBSTAGE/memdisk.tar" boot
 
-    # Produce final EFI image:
-    # The --verbose option on grub-mkstandalone is very useful to learn how
-    # this process works.
-    log "Building GRUB image..."
-    # NOTE:  In order for the public key to take effect, you must build the
-    # verify module into the main image.  Furthermore, to avoid an infinite
-    # recursion loop, you also have to build in the module for your public
-    # key algorithm (e.g. gcry_rsa).  Look at grub-core/commands/verify.c:
-    # pkalgos variable to see which modules are required.
-    SB_MODULES="
+  # Produce final EFI image:
+  # The --verbose option on grub-mkstandalone is very useful to learn how
+  # this process works.
+  log "Building GRUB image..."
+  # NOTE:  In order for the public key to take effect, you must build the
+  # verify module into the main image.  Furthermore, to avoid an infinite
+  # recursion loop, you also have to build in the module for your public
+  # key algorithm (e.g. gcry_rsa).  Look at grub-core/commands/verify.c:
+  # pkalgos variable to see which modules are required.
+  SB_MODULES="
 	memdisk
 	tar
 	verify
@@ -245,40 +229,39 @@ BuildGrubRamfs() {
 	gcry_sha256
 	gcry_sha512
 	"
-    # The upstream Debian version of GRUB2 applies a special patch called
-    # debian/patches/no_insmod_on_sb.patch:
-    #
-    #     From 1f49cca006e1b532a86eceb513251366cdb923a2 Mon Sep 17 00:00:00 2001
-    #     From: Matthew Garrett <mjg@redhat.com>
-    #     Date: Mon, 13 Jan 2014 12:13:09 +0000
-    #     Subject: Don't permit loading modules on UEFI secure boot
-    #
-    # This patch completely disables the insmod command if it detects that the
-    # system is booted with UEFI secure boot.  Normally, this might be a good
-    # thing, but in this case, it's totally counterproductive because we are
-    # using check_signatures feature of GRUB2 and the modules are already
-    # included in the memdisk anyway.
-    #
-    # The ultimate solution might be if upstream can modify their patch so as to
-    # only disable insmod when check_signatures is not set to enforce.  For now,
-    # we work around the issue by including all the needed modules directly in
-    # the GRUB binary (this is independent of the memdisk).
-    #
-    # The following list of modules is identical to the modules included in
-    # Canonical's grubx64.efi signed image.  It can be obtained from the
-    # debian/build-efi-images script in the Ubuntu GRUB2 package source code.
-    # This list is from source package grub2 (2.02~beta2-36ubuntu3).  It will
-    # be necessary to keep this list up-to-date with the upstream list.
-    # (Failure to do so would be indicated by a "Secure Boot forbids loading
-    # module from" error.)
-    CD_MODULES="
+  # The upstream Debian version of GRUB2 applies a special patch called
+  # debian/patches/no_insmod_on_sb.patch:
+  #
+  #     From 1f49cca006e1b532a86eceb513251366cdb923a2 Mon Sep 17 00:00:00 2001
+  #     From: Matthew Garrett <mjg@redhat.com>
+  #     Date: Mon, 13 Jan 2014 12:13:09 +0000
+  #     Subject: Don't permit loading modules on UEFI secure boot
+  #
+  # This patch completely disables the insmod command if it detects that the
+  # system is booted with UEFI secure boot.  Normally, this might be a good
+  # thing, but in this case, it's totally counterproductive because we are
+  # using check_signatures feature of GRUB2 and the modules are already
+  # included in the memdisk anyway.
+  #
+  # The ultimate solution might be if upstream can modify their patch so as to
+  # only disable insmod when check_signatures is not set to enforce.  For now,
+  # we work around the issue by including all the needed modules directly in
+  # the GRUB binary (this is independent of the memdisk).
+  #
+  # The following list of modules is identical to the modules included in
+  # Debians grubx64.efi signed image.  It can be obtained from the
+  # debian/build-efi-images script in the GRUB2 package source code.
+  # This list is from source package grub2 (2.04-5.debian).  It will
+  # be necessary to keep this list up-to-date with the upstream list.
+  # (Failure to do so would be indicated by a "Secure Boot forbids loading
+  # module from" error.)
+  CD_MODULES="
 	all_video
 	boot
 	btrfs
 	cat
 	chain
 	configfile
-	cryptodisk
 	echo
 	efifwsetup
 	efinet
@@ -291,251 +274,273 @@ BuildGrubRamfs() {
 	gfxterm_background
 	gzio
 	halt
+	help
 	hfsplus
 	iso9660
 	jpeg
 	keystatus
 	loadenv
+	loopback
 	linux
+	ls
 	lsefi
 	lsefimmap
 	lsefisystab
 	lssal
-	luks
 	memdisk
 	minicmd
 	normal
+	ntfs
 	part_apple
 	part_msdos
 	part_gpt
 	password_pbkdf2
 	png
+	probe
 	reboot
+	regexp
 	search
 	search_fs_uuid
 	search_fs_file
 	search_label
 	sleep
+	squash4
 	test
 	true
 	video
+	xfs
 	zfs
 	zfscrypt
 	zfsinfo
 	"
-    # x86_64-efi platform-specific modules:
-    CD_MODULES="$CD_MODULES
+  # x86_64-efi platform-specific modules:
+  CD_MODULES="$CD_MODULES
+	tpm
+	cpuid
 	linuxefi
+	play
 	"
-    GRUB_MODULES="$CD_MODULES
+  GRUB_MODULES="$CD_MODULES
+  cryptodisk
+  gcry_arcfour
+  gcry_blowfish
+	gcry_camellia
+	gcry_cast5
+	gcry_crc
+	gcry_des
+	gcry_dsa
+	gcry_idea
+	gcry_md4
+	gcry_md5
+	gcry_rfc2268
+	gcry_rijndael
+	gcry_rmd160
+	gcry_rsa
+	gcry_seed
+	gcry_serpent
+	gcry_sha1
+	gcry_sha256
+	gcry_sha512
+	gcry_tiger
+	gcry_twofish
+	gcry_whirlpool
+	luks
 	lvm
 	mdraid09
 	mdraid1x
 	raid5rec
-	raid6rec
+	raid6re
 	"
-    # Now, append our modules to the list:
-    GRUB_MODULES="$GRUB_MODULES $SB_MODULES"
-    # If the user is running an older version of Ubuntu/GRUB2, they might not
-    # have all the modules listed above.  Filter out the ones they don't have.
-    WANTED_FILE=$(mktemp)
-    echo $GRUB_MODULES | tr ' ' '\0' | tr -d '\n' | sort -u -z > "$WANTED_FILE"
-    ACTUAL_FILE=$(mktemp)
-    find "$GRUBSTAGE/boot/grub" -type f -name \*.mod -printf '%f\0' | \
-	sed -z 's/\.mod//g' | sort -z > "$ACTUAL_FILE"
-    USED_MODULES=$(comm -12 -z "$WANTED_FILE" "$ACTUAL_FILE" | tr '\0' ' ')
-    grub-mkimage --format $FORMAT --output "$GRUBSTAGE/$EFI_FILENAME" \
-	--memdisk "$GRUBSTAGE/memdisk.tar" --pubkey "$GPGPUBLICKEY" \
-	$USED_MODULES
+  # Now, append our modules to the list:
+  GRUB_MODULES="$GRUB_MODULES $SB_MODULES"
+  # If the user is running an older version of Debian/GRUB2, they might not
+  # have all the modules listed above.  Filter out the ones they don't have.
+  WANTED_FILE=$(mktemp)
+  echo $GRUB_MODULES | tr ' ' '\0' | tr -d '\n' | sort -u -z >"$WANTED_FILE"
+  ACTUAL_FILE=$(mktemp)
+  find "$GRUBSTAGE/boot/grub" -type f -name \*.mod -printf '%f\0' |
+    sed -z 's/\.mod//g' | sort -z >"$ACTUAL_FILE"
+  USED_MODULES=$(comm -12 -z "$WANTED_FILE" "$ACTUAL_FILE" | tr '\0' ' ')
+  grub-mkimage --format $FORMAT --output "$GRUBSTAGE/$EFI_FILENAME" \
+    --memdisk "$GRUBSTAGE/memdisk.tar" --pubkey "$GPGPUBLICKEY" \
+    $USED_MODULES
 
-    # Save db.key OpenSSL key to an unencrypted file (remove passphrase):
-    until echo "$PASSPHRASE" | openssl rsa -in "$KEYDIR/db.key" -out "$PEMPRIVATEKEY" -passin stdin
-    do
-	log "Bad passphrase on ssl key"
-	sleep 1
-    done
+  # Save db.key OpenSSL key to an unencrypted file (remove passphrase):
+  until echo "$PASSPHRASE" | openssl rsa -in "$KEYDIR/db.key" -out "$PEMPRIVATEKEY" -passin stdin; do
+    log "Bad passphrase on ssl key"
+    sleep 1
+  done
 
-    # Sign the EFI image into final output location.
-    log "Signing GRUB image..."
-    runsbsign --key "$PEMPRIVATEKEY" --cert "$KEYDIR/db.crt" \
-	--output /boot/efi/EFI/$BOOTLOADER_ID/$EFI_FILENAME \
-	"$GRUBSTAGE/$EFI_FILENAME"
+  # Sign the EFI image into final output location.
+  log "Signing GRUB image..."
+  runsbsign --key "$PEMPRIVATEKEY" --cert "$KEYDIR/db.crt" \
+    --output /boot/efi/EFI/$BOOTLOADER_ID/$EFI_FILENAME \
+    "$GRUBSTAGE/$EFI_FILENAME"
 
-    # Delete existing bootloader entries from firmware:
-    log "Adding bootloader to EFI configuration..."
-    set -e
-    efibootmgr | grep -i "$BOOTLOADER_ID" | cut -c 5-8 | xargs -n 1 -r \
-	efibootmgr --quiet --delete-bootnum --bootnum
-    set +e
-    # Add new bootloader entry. nvme looks like /dev/nvme0n1p1
-    DEVICE="$(df -T /boot/efi | sed -n 2p | awk '{ print $1}')"
-    if [[ $DEVICE =~ n[0-9]+p[0-9] ]]
-    then
-	DISK="$(echo "$DEVICE" | sed 's?p.*??g')"
-	PARTNUM="$(echo "$DEVICE" | sed 's?.*p??g')"
-    else
-	DISK="$(echo "$DEVICE" | sed 's|[0-9]||g')"
-	PARTNUM="$(echo "$DEVICE" | sed 's|[^0-9]||g')"
-    fi
-    efibootmgr --quiet --create --disk "$DISK" --part "$PARTNUM" \
-	--write-signature --label "$BOOTLOADER_ID" \
-	--loader "\\EFI\\$BOOTLOADER_ID\\$EFI_FILENAME"
+  # Delete existing bootloader entries from firmware:
+  log "Adding bootloader to EFI configuration..."
+  set -e
+  efibootmgr | grep -i "$BOOTLOADER_ID" | cut -c 5-8 | xargs -n 1 -r \
+    efibootmgr --quiet --delete-bootnum --bootnum
+  set +e
+  # Add new bootloader entry. nvme looks like /dev/nvme0n1p1
+  DEVICE="$(df -T /boot/efi | sed -n 2p | awk '{ print $1}')"
+  if [[ $DEVICE =~ n[0-9]+p[0-9] ]]; then
+    DISK="$(echo "$DEVICE" | sed 's?p.*??g')"
+    PARTNUM="$(echo "$DEVICE" | sed 's?.*p??g')"
+  else
+    DISK="$(echo "$DEVICE" | sed 's|[0-9]||g')"
+    PARTNUM="$(echo "$DEVICE" | sed 's|[^0-9]||g')"
+  fi
+  efibootmgr --quiet --create --disk "$DISK" --part "$PARTNUM" \
+    --write-signature --label "$BOOTLOADER_ID" \
+    --loader "\\EFI\\$BOOTLOADER_ID\\$EFI_FILENAME"
 }
 
 # Does key directory exist?
-if [ -d "$KEYDIR" ] && gpg -K --with-colons | \
-    grep -q "Ubuntu secure boot EFI key" && \
-    [ -e "$KEYDIR/db.crt" -a -e "$KEYDIR/db.key" ]
-then
-    # Temporary files:
-    GPGPUBLICKEY="$(mktemp)"
-    GRUBSTAGE="$(mktemp -d)"
-    PEMPRIVATEKEY="$(mktemp)"
-    NULL="$(mktemp)"
-    trap Cleanup EXIT INT TERM
+if [ -d "$KEYDIR" ] && gpg -K --with-colons |
+  grep -q "Debian secure boot EFI key" &&
+  [ -e "$KEYDIR/db.crt" -a -e "$KEYDIR/db.key" ]; then
+  # Temporary files:
+  GPGPUBLICKEY="$(mktemp)"
+  GRUBSTAGE="$(mktemp -d)"
+  PEMPRIVATEKEY="$(mktemp)"
+  NULL="$(mktemp)"
+  trap Cleanup EXIT INT TERM
 
-    # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=838153
-    # KEYID is not in output. So instead, export and grep it
-    KEYID=$(gpg -a --export |gpg --list-packets --verbose | \
-      awk '/Ubuntu secure boot EFI key/ { printing=1 } /keyid/ { if (printing) { print $NF; printing=0} } {}')
+  # See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=838153
+  # KEYID is not in output. So instead, export and grep it
+  KEYID=$(gpg -a --export | gpg --list-packets --verbose |
+    awk '/Debian secure boot EFI key/ { printing=1 } /keyid/ { if (printing) { print $NF; printing=0} } {}')
 
-    gpg --yes --output "$GPGPUBLICKEY" --export "$KEYID"
-    set +e
+  gpg --yes --output "$GPGPUBLICKEY" --export "$KEYID"
+  set +e
 
-    PASSPHRASEOK=0
-    until [ $PASSPHRASEOK -eq 1 ]
-    do
-        : | gpg --pinentry-mode cancel --yes -u "$KEYID" -o "$NULL" -as - 2>/dev/null
-        if [ $? -eq 0 ]
-        then
-            PASSPHRASEOK=1
-        else
-            log "get the passphrase"
-            GetPassphrase
-            echo "$PASSPHRASE" | gpg --batch --passphrase-fd 0 \
-                                      --pinentry-mode loopback --yes \
-                                      -u "$KEYID" -o "$NULL" -as /dev/null 2>/dev/null
-            if [ $? -eq 0 ]
-            then
-                PASSPHRASEOK=1
-            else
-                RetryPassphrase
-            fi
-        fi
-    done
-    if [ $PASSPHRASEOK != 1 ]
-    then
-        log "^C pressed, giving up"
-        exit 1
+  PASSPHRASEOK=0
+  until [ $PASSPHRASEOK -eq 1 ]; do
+    : | gpg --pinentry-mode cancel --yes -u "$KEYID" -o "$NULL" -as - 2>/dev/null
+    if [ $? -eq 0 ]; then
+      PASSPHRASEOK=1
+    else
+      log "get the passphrase"
+      GetPassphrase
+      echo "$PASSPHRASE" | gpg --batch --passphrase-fd 0 \
+        --pinentry-mode loopback --yes \
+        -u "$KEYID" -o "$NULL" -as /dev/null 2>/dev/null
+      if [ $? -eq 0 ]; then
+        PASSPHRASEOK=1
+      else
+        RetryPassphrase
+      fi
     fi
+  done
+  if [ $PASSPHRASEOK != 1 ]; then
+    log "^C pressed, giving up"
+    exit 1
+  fi
 
-    # Resigning/Rebuilding grub is slow. If key is same and
-    # grub.cfg is same, don't. (e.g. on update-initramfs)
-    CheckCache "$GPGPUBLICKEY" "$1"
-    if [ $? != 0 ]
-    then
-	BuildGrubRamfs
+  # Resigning/Rebuilding grub is slow. If key is same and
+  # grub.cfg is same, don't. (e.g. on update-initramfs)
+  CheckCache "$GPGPUBLICKEY" "$1"
+  if [ $? != 0 ]; then
+    BuildGrubRamfs
+  fi
+
+  # Sign any kernels we were requested to sign:
+  if [ "$SECURE_BOOT_KERNEL_ACTION" = postinst -a \
+    "$SECURE_BOOT_KERNEL_HOOK" = 1 ]; then
+    # Calculate path to kernel:
+    if [ -z "$SECURE_BOOT_KERNEL_PATH" ]; then
+      SECURE_BOOT_KERNEL_PATH="/boot/vmlinuz-$SECURE_BOOT_KERNEL_ABI"
+      if [ ! -e "$SECURE_BOOT_KERNEL_PATH" ]; then
+        SECURE_BOOT_KERNEL_PATH="/boot/vmlinux-$SECURE_BOOT_KERNEL_ABI"
+      fi
     fi
+    SECURE_BOOT_KERNEL_PATH=${SECURE_BOOT_KERNEL_PATH%.sig}
+    # If SECURE_BOOT_SIGNED_SOURCE is set, then that is a kernel that we
+    # already signed with a detached signature.  We will copy it to the
+    # destination location, using sbsign to sign it with that, and then
+    # sign the result.  The source file must already have a gpg signature
+    # on it.  This is intended for use with linux-signed-image packages
+    # (see comments in update-grub).
+    log "Signing kernel or initrd at $SECURE_BOOT_KERNEL_PATH"
+    if [ -n "$SECURE_BOOT_SIGNED_SOURCE" ]; then
+      if [ -f "${SECURE_BOOT_SIGNED_SOURCE}.sig" ]; then
+        # Check source signature
+        gpg --verify "${SECURE_BOOT_SIGNED_SOURCE}.sig" \
+          "$SECURE_BOOT_SIGNED_SOURCE"
+      fi
 
-    # Sign any kernels we were requested to sign:
-    if [ "$SECURE_BOOT_KERNEL_ACTION" = postinst -a \
-        "$SECURE_BOOT_KERNEL_HOOK" = 1 ]
-    then
-        # Calculate path to kernel:
-        if [ -z "$SECURE_BOOT_KERNEL_PATH" ] ; then
-            SECURE_BOOT_KERNEL_PATH="/boot/vmlinuz-$SECURE_BOOT_KERNEL_ABI"
-            if [ ! -e "$SECURE_BOOT_KERNEL_PATH" ] ; then
-                SECURE_BOOT_KERNEL_PATH="/boot/vmlinux-$SECURE_BOOT_KERNEL_ABI"
-            fi
-        fi
-        SECURE_BOOT_KERNEL_PATH=${SECURE_BOOT_KERNEL_PATH%.sig}
-        # If SECURE_BOOT_SIGNED_SOURCE is set, then that is a kernel that we
-        # already signed with a detached signature.  We will copy it to the
-        # destination location, using sbsign to sign it with that, and then
-        # sign the result.  The source file must already have a gpg signature
-        # on it.  This is intended for use with linux-signed-image packages
-        # (see comments in update-grub).
-        log "Signing kernel or initrd at $SECURE_BOOT_KERNEL_PATH"
-        if [ -n "$SECURE_BOOT_SIGNED_SOURCE" ] ; then
-            if [ -f "${SECURE_BOOT_SIGNED_SOURCE}.sig" ]
-            then
-                # Check source signature
-                gpg --verify "${SECURE_BOOT_SIGNED_SOURCE}.sig" \
-                    "$SECURE_BOOT_SIGNED_SOURCE"
-            fi
-
-            # Copy and sign it to destination with sbsign:
-            runsbsign --key "$PEMPRIVATEKEY" --cert "$KEYDIR/db.crt" \
-                --output "$SECURE_BOOT_KERNEL_PATH" \
-                "$SECURE_BOOT_SIGNED_SOURCE"
-        fi
-        # Now sign the final output with gpg:
-        if [ -e "$SECURE_BOOT_KERNEL_PATH" ] ; then
-            gpg --yes --batch -u "$KEYID" --detach-sign \
-                "$SECURE_BOOT_KERNEL_PATH"
-        fi
-    elif [ "$SECURE_BOOT_KERNEL_ACTION" = postrm -a \
-        "$SECURE_BOOT_KERNEL_HOOK" = 1 ]
-    then
-        # Remove any detached signatures from the uninstalled kernel.
-        if [ -z "$SECURE_BOOT_KERNEL_PATH" ] ; then
-            rm -f "/boot/vmlinuz-${SECURE_BOOT_KERNEL_ABI}.sig"
-            rm -f "/boot/vmlinux-${SECURE_BOOT_KERNEL_ABI}.sig"
-        else
-            rm -f "${SECURE_BOOT_KERNEL_PATH}.sig"
-        fi
+      # Copy and sign it to destination with sbsign:
+      runsbsign --key "$PEMPRIVATEKEY" --cert "$KEYDIR/db.crt" \
+        --output "$SECURE_BOOT_KERNEL_PATH" \
+        "$SECURE_BOOT_SIGNED_SOURCE"
     fi
+    # Now sign the final output with gpg:
+    if [ -e "$SECURE_BOOT_KERNEL_PATH" ]; then
+      gpg --yes --batch -u "$KEYID" --detach-sign \
+        "$SECURE_BOOT_KERNEL_PATH"
+    fi
+  elif [ "$SECURE_BOOT_KERNEL_ACTION" = postrm -a \
+    "$SECURE_BOOT_KERNEL_HOOK" = 1 ]; then
+    # Remove any detached signatures from the uninstalled kernel.
+    if [ -z "$SECURE_BOOT_KERNEL_PATH" ]; then
+      rm -f "/boot/vmlinuz-${SECURE_BOOT_KERNEL_ABI}.sig"
+      rm -f "/boot/vmlinux-${SECURE_BOOT_KERNEL_ABI}.sig"
+    else
+      rm -f "${SECURE_BOOT_KERNEL_PATH}.sig"
+    fi
+  fi
 
-    # If --sign-all flag is passed, sign all installed kernels and initramfs.
-    # This assumes that whatever is on /boot is trustworthy.  Intended for use
-    # only from make-secure-boot-keys.
-    #if [ "$1" = --sign-all ] ; then
+  # If --sign-all flag is passed, sign all installed kernels and initramfs.
+  # This assumes that whatever is on /boot is trustworthy.  Intended for use
+  # only from make-secure-boot-keys.
+  #if [ "$1" = --sign-all ] ; then
 
-    for file in $(ls /boot/vmlinux-* /boot/vmlinuz-* /boot/initrd* 2>/dev/null |egrep -v "\.sig$|\.sig.dpkg-bak$") ; do
-	# Skip soft-links (e.g. /boot/vmlinuz)
-	[ -f "$file" -a ! -h "$file" ] || continue
-        CheckSig "$file" "$1"
-        if [ $? -eq 1 ]
-        then
-	    log "Signing kernel or initrd at $file"
-	    case "$file" in
-		*.efi.signed)
-		    # This is supposed to be an Authenticode-signed kernel.
-		    log "Handle .efi.signed case $file"
-			runsbsign --key "$PEMPRIVATEKEY" --cert "$KEYDIR/db.crt" \
-		    --output "$file" "$file"
-		;;
-	    esac
-	    # Sign final output with gpg:
-	    log "(re) sign file $file"
-	    gpg --yes --batch -u "$KEYID" --detach-sign "$file"
-        fi
-    done
+  for file in $(ls /boot/vmlinux-* /boot/vmlinuz-* /boot/initrd* 2>/dev/null | egrep -v "\.sig$|\.sig.dpkg-bak$"); do
+    # Skip soft-links (e.g. /boot/vmlinuz)
+    [ -f "$file" -a ! -h "$file" ] || continue
+    CheckSig "$file" "$1"
+    if [ $? -eq 1 ]; then
+      log "Signing kernel or initrd at $file"
+      case "$file" in
+      *.efi.signed)
+        # This is supposed to be an Authenticode-signed kernel.
+        log "Handle .efi.signed case $file"
+        runsbsign --key "$PEMPRIVATEKEY" --cert "$KEYDIR/db.crt" \
+          --output "$file" "$file"
+        ;;
+      esac
+      # Sign final output with gpg:
+      log "(re) sign file $file"
+      gpg --yes --batch -u "$KEYID" --detach-sign "$file"
+    fi
+  done
 
-    #fi
+  #fi
 
-    # Remove junk from /boot from the original GRUB packages.  These files are
-    # not secured, so keeping them around is not helpful.  If this package is
-    # uninstalled, our postrm will rerun original GRUB commands to restore
-    # them.
-    log "Removing non-secure GRUB boot files..."
-    rm -f "/boot/efi/EFI/$BOOTLOADER_ID/grub.cfg"
-    rm -f "/boot/efi/EFI/$BOOTLOADER_ID/grubx64.efi"
-    rm -f "/boot/efi/EFI/$BOOTLOADER_ID/MokManager.efi"
-    rm -f "/boot/efi/EFI/$BOOTLOADER_ID/shimx64.efi"
-    rm -rf /boot/grub/fonts
-    rm -rf /boot/grub/locale
-    rm -rf /boot/grub/x86_64-efi
-    rm -rf /boot/grub/grubenv
-    rm -rf /boot/grub/unicode.pf2
-    : > /boot/grub/grub.cfg
+  # Remove junk from /boot from the original GRUB packages.  These files are
+  # not secured, so keeping them around is not helpful.  If this package is
+  # uninstalled, our postrm will rerun original GRUB commands to restore
+  # them.
+  log "Removing non-secure GRUB boot files..."
+  rm -f "/boot/efi/EFI/$BOOTLOADER_ID/grub.cfg"
+  rm -f "/boot/efi/EFI/$BOOTLOADER_ID/grubx64.efi"
+  rm -f "/boot/efi/EFI/$BOOTLOADER_ID/MokManager.efi"
+  rm -f "/boot/efi/EFI/$BOOTLOADER_ID/shimx64.efi"
+  rm -rf /boot/grub/fonts
+  rm -rf /boot/grub/locale
+  rm -rf /boot/grub/x86_64-efi
+  rm -rf /boot/grub/grubenv
+  rm -rf /boot/grub/unicode.pf2
+  : >/boot/grub/grub.cfg
 
-    # Now update cache
-    mkdir -p /etc/ubuntu-secure-boot/cache
-    cp "$GPGPUBLICKEY" /etc/ubuntu-secure-boot/cache/grub.pubkey
-    cp /etc/ubuntu-secure-boot/grub.cfg /etc/ubuntu-secure-boot/cache/grub.cfg
+  # Now update cache
+  mkdir -p /etc/debian-secure-boot/cache
+  cp "$GPGPUBLICKEY" /etc/debian-secure-boot/cache/grub.pubkey
+  cp /etc/debian-secure-boot/grub.cfg /etc/debian-secure-boot/cache/grub.cfg
 
-    exit 0
+  exit 0
 fi
 
 log "WARNING:  No signing keys found.  Running original grub-install..."

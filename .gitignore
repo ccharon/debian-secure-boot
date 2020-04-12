@@ -2,4 +2,4 @@ debian/files
 debian/*.debhelper
 debian/*.debhelper.log
 debian/*.substvars
-debian/ubuntu-secure-boot/
+debian/debian-secure-boot/

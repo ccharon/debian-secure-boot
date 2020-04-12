@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: ubuntu-secure-boot
+Upstream-Name: debian-secure-boot
 Source: https://github.com/JohnstonJ/ubuntu-secure-boot
 
 Files: *

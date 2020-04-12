@@ -5,7 +5,7 @@
 #
 # 1.  The /boot partition might not be encrypted, so storing grub.cfg there is
 #     not a good plan.  Whereas, we advise the user to use full disk
-#     encryption, so we can assume /etc/ubuntu-secure-boot is a safe place to
+#     encryption, so we can assume /etc/debian-secure-boot is a safe place to
 #     store grub.cfg.
 #
 # 2.  The full configuration is embedded inside of a single standalone EFI
@@ -34,20 +34,20 @@ fi
 
 # Pick config path based on whether the key directory exists, according
 # to the logic in our custom grub-install.
-KEYDIR=/etc/ubuntu-secure-boot/keys
+KEYDIR=/etc/debian-secure-boot/keys
 export GNUPGHOME="$KEYDIR"
 
 # Does key directory exist?
 if [ -d $KEYDIR ] && gpg -K --with-colons | \
-    grep -q "Ubuntu secure boot EFI key"
+    grep -q "Debian secure boot EFI key"
 then
     # Test if we are being called from a linux-signed-image package.  These
-    # Ubuntu packages contain a detached Canonical signature to sign the
+    # Debian packages contain a detached Debian signature to sign the
     # already-installed Linux kernel.  This is done in their postinst script.
-    # Ubuntu's GRUB scripts will then similarly prefer this Canonical-signed
+    # Debian's GRUB scripts will then similarly prefer this Debian-signed
     # image if it exists when generating the GRUB menu.
     #
-    # We need to sign this image with our own keys instead of Canonical's.
+    # We need to sign this image with our own keys instead of Debian's.
     # Here we detect if we are being called from linux-signed-image postinst,
     # and, if so, set flags to control grub-install's kernel signing behavior.
     PARENTCOMMAND="$(ps -o command= $PPID)"
@@ -71,7 +71,7 @@ then
 
     # Now, regenerate configuration and rerun grub-install.
     unset GNUPGHOME # in case a user config script uses GPG
-    grub-mkconfig -o /etc/ubuntu-secure-boot/grub.cfg "$@"
+    grub-mkconfig -o /etc/debian-secure-boot/grub.cfg "$@"
     if [ "$SECURE_BOOT_SIGN_ALL" = 1 ] ; then
         grub-install --sign-all
     else

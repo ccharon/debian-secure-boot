@@ -1,14 +1,14 @@
-Template: ubuntu-secure-boot/passphrase
+Template: debian-secure-boot/passphrase
 Type: password
 Description: Enter the passphrase for secure boot private keys:
- The ubuntu-secure-boot package was used to generate private keys for signing
+ The debian-secure-boot package was used to generate private keys for signing
  boot files, such as bootloaders and kernels.  Enter the passphrase for these
  keys so that the boot files can be signed.
 
-Template: ubuntu-secure-boot/retrypassphrase
+Template: debian-secure-boot/retrypassphrase
 Type: boolean
 Description: The passphrase you entered was invalid.  Try again?
 
-Template: ubuntu-secure-boot/title
+Template: debian-secure-boot/title
 Type: title
-Description: Ubuntu Secure Boot
+Description: Debian Secure Boot

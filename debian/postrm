@@ -1,5 +1,5 @@
 #!/bin/sh
-# postrm script for ubuntu-secure-boot
+# postrm script for debian-secure-boot
 #
 # see: dh_installdeb(1)
 
@@ -27,27 +27,27 @@ set -e
 # the debian-policy package
 
 if [ remove = "$1" -o abort-install = "$1" -o disappear = "$1" ]; then
-    dpkg-divert --package ubuntu-secure-boot --remove --rename \
+    dpkg-divert --package debian-secure-boot --remove --rename \
         /usr/sbin/grub-install
-    dpkg-divert --package ubuntu-secure-boot --remove --rename \
+    dpkg-divert --package debian-secure-boot --remove --rename \
         /usr/sbin/update-grub
-    dpkg-divert --package ubuntu-secure-boot --remove --rename \
+    dpkg-divert --package debian-secure-boot --remove --rename \
         /usr/share/grub/grub-mkconfig_lib
 fi
 
 case "$1" in
     purge)
         # Clean up files made by this package.
-        #rm -rf /etc/ubuntu-secure-boot/keys
-        rm -f /etc/ubuntu-secure-boot/grub.cfg
+        #rm -rf /etc/debian-secure-boot/keys
+        rm -f /etc/debian-secure-boot/grub.cfg
         rm -f /etc/grub.d/01_grub_secure_boot_password
         # Avoid wiping original post*.distrib scripts if they were still there:
-        rm -fd /etc/ubuntu-secure-boot
+        rm -fd /etc/debian-secure-boot
         # Clean boot files:
-        rm -f /boot/efi/EFI/ubuntu/securegrubx64.efi
-        rm -f /boot/efi/EFI/ubuntu/PK.*
-        rm -f /boot/efi/EFI/ubuntu/KEK.*
-        rm -f /boot/efi/EFI/ubuntu/db.*
+        rm -f /boot/efi/EFI/debian/securegrubx64.efi
+        rm -f /boot/efi/EFI/debian/PK.*
+        rm -f /boot/efi/EFI/debian/KEK.*
+        rm -f /boot/efi/EFI/debian/db.*
         rm -rf /boot/grub
         rm -f /boot/*.sig
 

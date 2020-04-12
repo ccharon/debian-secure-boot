@@ -1,5 +1,5 @@
 #!/bin/sh
-# preinst script for ubuntu-secure-boot
+# preinst script for debian-secure-boot
 #
 # see: dh_installdeb(1)
 
@@ -14,9 +14,9 @@ set -e
 # the debian-policy package
 
 do_divert() {
-    if [ "$(dpkg-divert --listpackage $1)" != ubuntu-secure-boot ]
+    if [ "$(dpkg-divert --listpackage $1)" != debian-secure-boot ]
     then
-        dpkg-divert --add --package ubuntu-secure-boot --rename $1
+        dpkg-divert --add --package debian-secure-boot --rename $1
     fi
 }
 
