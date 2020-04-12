@@ -1,5 +1,5 @@
-debian-secure-boot (0.1.0) ...
-  [Christian Charon]
+debian-secure-boot (0.1.0debian) ...
+  [ Christian Charon ]
   * first Version adapted from ubuntu-secure-boot (0.1.7ubuntu1)
 
 ubuntu-secure-boot (0.1.7ubuntu1) unstable; urgency=medium

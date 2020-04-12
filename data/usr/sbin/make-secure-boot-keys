@@ -1,29 +1,33 @@
 #!/bin/sh
-
 # Run this script after installing the package to make your private keys for
-# secure booting.  They are stored in /etc/debian-secure-boot/keys.  This
-# allows convenient signing of new kernels, GRUB versions, etc.  It's
+# secure booting. They are stored in /etc/debian-secure-boot/keys. This
+# allows convenient signing of new kernels, GRUB versions, etc. It's
 # recommended that your /etc partition is encrypted.
 
 set -e
 
 EntropySetup() {
-    # It's helpful to run a background process to come up with entropy.  We do
-    # so by generating lots of disk activity.  This is particularly handy on
+    # It's helpful to run a background process to come up with entropy. We do
+    # so by generating lots of disk activity. This is particularly handy on
     # systems that otherwise lack entropy (e.g. a clean Debian install in a
     # virtual machine).
+
     echo
     printf "%s" "Run a background process to generate entropy? [n] "
     read RUN_BACKGROUND
+
     STARTED_ENTROPY=0
-    if [ "$RUN_BACKGROUND" = y ] ; then
+
+    if [ "$RUN_BACKGROUND" = y ]; then
         echo "Starting background entropy process..."
-        ( set +e
-        while : ; do
-            echo -n .
-            echo 3 > /proc/sys/vm/drop_caches
-            ls / -R > /dev/null 2> /dev/null
-        done ) &
+        (
+            set +e
+            while :; do
+                echo -n .
+                echo 3 >/proc/sys/vm/drop_caches
+                ls / -R >/dev/null 2>/dev/null
+            done
+        ) &
         ENTROPY_PID=$!
         STARTED_ENTROPY=1
         trap Cleanup EXIT INT TERM
@@ -31,19 +35,23 @@ EntropySetup() {
 }
 
 CleanupEntropy() {
-    if [ "$STARTED_ENTROPY" = 1 ] ; then
+    if [ "$STARTED_ENTROPY" = 1 ]; then
         kill $ENTROPY_PID
     fi
+
     STARTED_ENTROPY=0
 }
 
 Cleanup() {
     CleanupEntropy
+
     stty echo
-    if [ -n "$SSLCFG" ] ; then
+
+    if [ -n "$SSLCFG" ]; then
         rm "$SSLCFG"
     fi
-    if [ -n "$TEMPKEYFILE" ] ; then
+
+    if [ -n "$TEMPKEYFILE" ]; then
         rm "$TEMPKEYFILE"
     fi
 }
@@ -55,20 +63,26 @@ Cleanup() {
 # Param 5: Empty password warning
 GetPassword() {
     stty -echo
+
     printf "%s" "$2"
     read READPASSWORD1
     echo
+
     printf "%s" "$3"
     read READPASSWORD2
     echo
+
     stty echo
-    if [ "$READPASSWORD1" != "$READPASSWORD2" ] ; then
+
+    if [ "$READPASSWORD1" != "$READPASSWORD2" ]; then
         echo "$4"
         exit 1
     fi
-    if [ -z "$READPASSWORD1" ] ; then
+
+    if [ -z "$READPASSWORD1" ]; then
         echo "$5"
     fi
+
     eval $1=\"\$READPASSWORD1\"
 }
 
@@ -84,11 +98,11 @@ unset STARTED_ENTROPY
 trap Cleanup EXIT INT TERM
 
 # Some particularly platform-specific variables:
-BOOTLOADER_ID=Debian             # EFI directory on EFI partition
+BOOTLOADER_ID=Debian # EFI directory on EFI partition
 
 echo "Private keys will be stored in /etc/debian-secure-boot/keys"
-echo "WARNING:  It's recommended that you put your /etc" \
-     "directory on an encrypted file system."
+echo "WARNING: It's recommended that you put your /etc" \
+    "directory on an encrypted file system."
 
 # Create and secure the key directory
 KEYDIR=/etc/debian-secure-boot/keys
@@ -99,32 +113,32 @@ export GNUPGHOME="$KEYDIR"
 
 # If keys already exist, ask if they want to make new ones.
 HASGPGKEY=0
-if gpg -K | grep -q "Debian secure boot EFI key" ; then
+if gpg -K | grep -q "Debian secure boot EFI key"; then
     HASGPGKEY=1
 fi
+
 HASUEFIKEY=0
-for file in PK.crt  PK.key  PK.cer  PK.esl  PK.auth \
-            KEK.crt KEK.key KEK.cer KEK.esl KEK.auth \
-            DB.crt  DB.key  DB.cer  DB.esl  DB.auth
-do
-    if [ -e "$KEYDIR/$file" ] ; then
+for file in PK.crt PK.key PK.cer PK.esl PK.auth \
+    KEK.crt KEK.key KEK.cer KEK.esl KEK.auth \
+    DB.crt DB.key DB.cer DB.esl DB.auth; do
+    if [ -e "$KEYDIR/$file" ]; then
         HASUEFIKEY=1
     fi
 done
+
 SKIPKEYGEN=0
-if [ $HASGPGKEY -ne 0 -o $HASUEFIKEY -ne 0 ] ; then
+if [ $HASGPGKEY -ne 0 -o $HASUEFIKEY -ne 0 ]; then
     echo
-    printf "%s" "Secure boot key files already exist.  Overwrite them? [n] "
+    printf "%s" "Secure boot key files already exist. Overwrite them? [n] "
     read OVW
     SKIPKEYGEN=1
-    if [ "$OVW" = y -o "$OVW" = Y ] ; then
+    if [ "$OVW" = y -o "$OVW" = Y ]; then
         SKIPKEYGEN=0
     fi
 fi
 
 KEYSCHANGED=0
-
-if [ $SKIPKEYGEN -eq 0 ] ; then
+if [ $SKIPKEYGEN -eq 0 ]; then
     # Get key information:
     echo
     echo "GPG KEY GENERATION:  Used for signing GRUB modules and Linux kernels."
@@ -137,14 +151,14 @@ if [ $SKIPKEYGEN -eq 0 ] ; then
     echo "Please confirm the following key information by typing \"yes\" below:"
     echo "$USERFULLNAME <$USEREMAIL>"
     read CONFIRMATION
-    if [ "$CONFIRMATION" != yes ] ; then
+    if [ "$CONFIRMATION" != yes ]; then
         exit 1
     fi
 
     GetPassword PASSPHRASE "Enter a passphrase for the new keys: " \
         "Enter the passphrase again: " "Passphrases do not match!" \
         "WARNING:  Keys are not protected by a passphrase."
-    if [ -n "$PASSPHRASE" ] ; then
+    if [ -n "$PASSPHRASE" ]; then
         PPPARAM="Passphrase: $PASSPHRASE"
     else
         PPPARAM=""
@@ -156,7 +170,7 @@ if [ $SKIPKEYGEN -eq 0 ] ; then
     rm -f "$KEYDIR"/random-seed
 
     # Generate GPG private key: used for signing files loaded by GRUB.
-    gpg --gen-key --batch << GPGEOF
+    gpg --gen-key --batch <<GPGEOF
         Key-Type: RSA
         Key-Length: 4096
         Key-Usage: sign
@@ -166,6 +180,7 @@ if [ $SKIPKEYGEN -eq 0 ] ; then
         Expire-Date: 0
         $PPPARAM
 GPGEOF
+
     CleanupEntropy
     echo "GPG key generation successful!"
 
@@ -182,7 +197,7 @@ GPGEOF
     EntropySetup
 
     SSLCFG="$(mktemp)"
-    cat > "$SSLCFG" << EOF
+    cat >"$SSLCFG" <<EOF
 [req]
 distinguished_name = reqdn
 x509_extensions = reqx509
@@ -199,43 +214,46 @@ EOF
 
     # UEFI Secure Boot keys must be 2048-bit RSA:
     # -x509: generate self-signed certificate
-    if [ -n "$PASSPHRASE" ] ; then
+    if [ -n "$PASSPHRASE" ]; then
         PASSPARAMS="-passout stdin"
     else
         PASSPARAMS="-nodes" # don't encrypt private key
     fi
     openssl req -new -x509 -newkey rsa:2048 -subj "/CN=$COMMONNAME PK/" \
         -days 3650 -sha256 -config "$SSLCFG" $PASSPARAMS \
-        -keyout "$KEYDIR/PK.key" -out "$KEYDIR/PK.crt" << EOFPASSPHRASEEOF
+        -keyout "$KEYDIR/PK.key" -out "$KEYDIR/PK.crt" <<EOFPASSPHRASEEOF
 $PASSPHRASE
 EOFPASSPHRASEEOF
+
     openssl req -new -x509 -newkey rsa:2048 -subj "/CN=$COMMONNAME KEK/" \
         -days 3650 -sha256 -config "$SSLCFG" $PASSPARAMS \
-        -keyout "$KEYDIR/KEK.key" -out "$KEYDIR/KEK.crt" << EOFPASSPHRASEEOF
+        -keyout "$KEYDIR/KEK.key" -out "$KEYDIR/KEK.crt" <<EOFPASSPHRASEEOF
 $PASSPHRASE
 EOFPASSPHRASEEOF
+
     openssl req -new -x509 -newkey rsa:2048 -subj "/CN=$COMMONNAME db/" \
         -days 3650 -sha256 -config "$SSLCFG" $PASSPARAMS \
-        -keyout "$KEYDIR/db.key" -out "$KEYDIR/db.crt" << EOFPASSPHRASEEOF
+        -keyout "$KEYDIR/db.key" -out "$KEYDIR/db.crt" <<EOFPASSPHRASEEOF
 $PASSPHRASE
 EOFPASSPHRASEEOF
 
     # Convert to DER format (required by some UEFI platforms)
-    openssl x509 -in "$KEYDIR/PK.crt"  -out "$KEYDIR/PK.cer"  -outform DER
+    openssl x509 -in "$KEYDIR/PK.crt" -out "$KEYDIR/PK.cer" -outform DER
     openssl x509 -in "$KEYDIR/KEK.crt" -out "$KEYDIR/KEK.cer" -outform DER
-    openssl x509 -in "$KEYDIR/db.crt"  -out "$KEYDIR/db.cer"  -outform DER
+    openssl x509 -in "$KEYDIR/db.crt" -out "$KEYDIR/db.cer" -outform DER
 
     # Generate a GUID to identify the keys.
     GUID="$(uuidgen)"
-    echo $GUID > "$KEYDIR/GUID.txt"
+    echo $GUID >"$KEYDIR/GUID.txt"
 
     # Generate EFI signature lists (required for some firmwares)
-    cert-to-efi-sig-list -g $GUID "$KEYDIR/PK.crt"  "$KEYDIR/PK.esl"
+    cert-to-efi-sig-list -g $GUID "$KEYDIR/PK.crt" "$KEYDIR/PK.esl"
     cert-to-efi-sig-list -g $GUID "$KEYDIR/KEK.crt" "$KEYDIR/KEK.esl"
-    cert-to-efi-sig-list -g $GUID "$KEYDIR/db.crt"  "$KEYDIR/db.esl"
+    cert-to-efi-sig-list -g $GUID "$KEYDIR/db.crt" "$KEYDIR/db.esl"
+
     # NOTE:  Having a "noPK" list that erases the PK, as suggested in the above
-    # reference link, isn't a safe thing to have sitting around.  So, we don't
-    # generate it.  If you want to change the PK, you can always go back to
+    # reference link, isn't a safe thing to have sitting around. So, we don't
+    # generate it. If you want to change the PK, you can always go back to
     # setup mode in your firmware...
 
     # Generate authorized updates to change the EFI variables; note:
@@ -244,19 +262,21 @@ EOFPASSPHRASEEOF
     # so we have to temporarily strip the private keys of their passphrases:
     TEMPKEYFILE="$(mktemp)"
     openssl rsa -in "$KEYDIR/PK.key" -out "$TEMPKEYFILE" -passin stdin \
-        << EOFPASSPHRASEEOF
+        <<EOFPASSPHRASEEOF
 $PASSPHRASE
 EOFPASSPHRASEEOF
+
     sign-efi-sig-list -k "$TEMPKEYFILE" -c "$KEYDIR/PK.crt" \
-                      PK "$KEYDIR/PK.esl" "$KEYDIR/PK.auth"
+        PK "$KEYDIR/PK.esl" "$KEYDIR/PK.auth"
     sign-efi-sig-list -k "$TEMPKEYFILE" -c "$KEYDIR/PK.crt" \
-                      KEK "$KEYDIR/KEK.esl" "$KEYDIR/KEK.auth"
+        KEK "$KEYDIR/KEK.esl" "$KEYDIR/KEK.auth"
     openssl rsa -in "$KEYDIR/KEK.key" -out "$TEMPKEYFILE" -passin stdin \
-        << EOFPASSPHRASEEOF
+        <<EOFPASSPHRASEEOF
 $PASSPHRASE
 EOFPASSPHRASEEOF
+
     sign-efi-sig-list -k "$TEMPKEYFILE" -c "$KEYDIR/KEK.crt" \
-                      KEK "$KEYDIR/db.esl" "$KEYDIR/db.auth"
+        KEK "$KEYDIR/db.esl" "$KEYDIR/db.auth"
 
     cp "$KEYDIR"/*.cer "$KEYDIR"/*.esl "$KEYDIR"/*.auth \
         /boot/efi/EFI/$BOOTLOADER_ID/
@@ -268,32 +288,32 @@ fi
 
 # If GRUB password already exists, ask if they want a new one.
 HASGRUBUSER=0
-if [ -e /etc/grub.d/01_grub_secure_boot_password ] ; then
+if [ -e /etc/grub.d/01_grub_secure_boot_password ]; then
     HASGRUBUSER=1
 fi
+
 SKIPGRUBUSER=0
-if [ $HASGRUBUSER -ne 0 ] ; then
+if [ $HASGRUBUSER -ne 0 ]; then
     echo
     printf "%s %s %s" "Grub user file" \
-           "(/etc/grub.d/01_grub_secure_boot_password)" \
-           "already exists.  Overwrite it to change the GRUB password? [n] "
+        "(/etc/grub.d/01_grub_secure_boot_password)" \
+        "already exists. Overwrite it to change the GRUB password? [n] "
     read OVW
     SKIPGRUBUSER=1
-    if [ "$OVW" = y -o "$OVW" = Y ] ; then
+    if [ "$OVW" = y -o "$OVW" = Y ]; then
         SKIPGRUBUSER=0
     fi
 fi
 
 GRUBUSERCHANGED=0
-
-if [ $SKIPGRUBUSER -eq 0 ] ; then
+if [ $SKIPGRUBUSER -eq 0 ]; then
     # Get GRUB user information:
     echo
     echo "GRUB USER INFORMATION:  Used to secure the GRUB user interface."
     echo
     printf "%s" "Enter GRUB supervisor username: [root] "
     read GRUBUSER
-    if [ -z "$GRUBUSER" ] ; then
+    if [ -z "$GRUBUSER" ]; then
         GRUBUSER=root
     fi
 
@@ -302,39 +322,40 @@ if [ $SKIPGRUBUSER -eq 0 ] ; then
         "WARNING:  The GRUB bootloader is not protected by a password."
 
     # Hash the password
-    GRUBPASSWORDHASH="$(grub-mkpasswd-pbkdf2 --iteration-count=250000 \
-<< EOFGRUBPASSWORD
+    GRUBPASSWORDHASH="$(
+        grub-mkpasswd-pbkdf2 --iteration-count=250000 \
+            <<EOFGRUBPASSWORD
 $GRUBPASSWORD
 $GRUBPASSWORD
 EOFGRUBPASSWORD
-)"
-    GRUBPASSWORDHASH="$(echo "$GRUBPASSWORDHASH" | \
-        grep -o "grub\.pbkdf2.*")"
+    )"
 
-    cat > /etc/grub.d/01_grub_secure_boot_password << EOFGRUBSCRIPT
+    GRUBPASSWORDHASH="$(echo "$GRUBPASSWORDHASH" | grep -o "grub\.pbkdf2.*")"
+
+    cat >/etc/grub.d/01_grub_secure_boot_password <<EOFGRUBSCRIPT
 #!/bin/sh
 exec tail -n +3 \$0
 password_pbkdf2 "$GRUBUSER" $GRUBPASSWORDHASH
 set superusers="$GRUBUSER"
 EOFGRUBSCRIPT
+
     chmod +x /etc/grub.d/01_grub_secure_boot_password
 
     GRUBUSERCHANGED=1
 fi
 
-
-if [ $KEYSCHANGED -ne 0 ] ; then
+if [ $KEYSCHANGED -ne 0 ]; then
     # Sign new GRUB installation:
     export SECURE_BOOT_SIGN_ALL=1
     update-grub
 
-    echo "UEFI key generation successful!  The public keys have been copied to" \
-         "/boot/efi/EFI/$BOOTLOADER_ID/.  You must now install the keys" \
-         "onto your firmware.  It's recommended to use the .esl or .auth" \
-         "files instead of the .cer files, to prevent firmware from" \
-         "generating a GUID for your keys.  You can use your firmware's" \
-         "setup, or use the KeyTool.efi program from the efitools package."
-elif [ $GRUBUSERCHANGED -ne 0 ] ; then
+    echo "UEFI key generation successful! The public keys have been copied to" \
+        "/boot/efi/EFI/$BOOTLOADER_ID/. You must now install the keys" \
+        "onto your firmware. It's recommended to use the .esl or .auth" \
+        "files instead of the .cer files, to prevent firmware from" \
+        "generating a GUID for your keys. You can use your firmware's" \
+        "setup, or use the KeyTool.efi program from the efitools package."
+elif [ $GRUBUSERCHANGED -ne 0 ]; then
     # Update GRUB, but don't sign all kernels since we didn't change keys.
     update-grub
 fi

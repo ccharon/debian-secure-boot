@@ -4,15 +4,15 @@ set -e
 
 log() {
     logger -t zz-ubuntu-secure-boot "$*"
-    >&2 echo "$*"
+    echo >&2 "$*"
 }
 
 log "update initramfs hook: $*"
 
-if [ -z "$2" ] ; then
+if [ -z "$2" ]; then
     # Required parameter (path to initramfs file) is missing.
     log "Required parameter to zz-ubuntu-secure-boot initramfs " \
-         "hook was missing."
+        "hook was missing."
     exit 1
 fi
 
@@ -21,13 +21,15 @@ fi
 export SECURE_BOOT_KERNEL_HOOK=1
 export SECURE_BOOT_KERNEL_ABI=
 export SECURE_BOOT_KERNEL_PATH="$2"
-if [ -e "$SECURE_BOOT_KERNEL_PATH" ] ; then
+
+if [ -e "$SECURE_BOOT_KERNEL_PATH" ]; then
     # Sign new file
     export SECURE_BOOT_KERNEL_ACTION=postinst
 else
     # Remove old signature
     export SECURE_BOOT_KERNEL_ACTION=postrm
 fi
+
 export SECURE_BOOT_SIGNED_SOURCE=
 
 # Run grub-install so that the new initramfs can be signed.

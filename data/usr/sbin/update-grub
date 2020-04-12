@@ -1,5 +1,4 @@
 #!/bin/sh
-
 # Here we override the original update-grub with a custom version for securing
 # GRUB.  This is required for two reasons:
 #
@@ -25,8 +24,7 @@ fi
 # after initializing debconf.  This, of course, totally breaks debconf.  This
 # special code checks if debconf was redirected in the past and fd 3 doesn't
 # currently exist.
-if [ -n "$DEBCONF_REDIR" -a \( ! -e /proc/$$/fd/3 \) -a -e /proc/$PPID/fd/3 ]
-then
+if [ -n "$DEBCONF_REDIR" -a \( ! -e /proc/$$/fd/3 \) -a -e /proc/$PPID/fd/3 ]; then
     # Grovel into their process to get to the file descriptor that they deleted
     # out from under us.
     exec 3>/proc/$PPID/fd/3
@@ -38,9 +36,8 @@ KEYDIR=/etc/debian-secure-boot/keys
 export GNUPGHOME="$KEYDIR"
 
 # Does key directory exist?
-if [ -d $KEYDIR ] && gpg -K --with-colons | \
-    grep -q "Debian secure boot EFI key"
-then
+if [ -d $KEYDIR ] && gpg -K --with-colons |
+    grep -q "Debian secure boot EFI key"; then
     # Test if we are being called from a linux-signed-image package.  These
     # Debian packages contain a detached Debian signature to sign the
     # already-installed Linux kernel.  This is done in their postinst script.
@@ -51,37 +48,39 @@ then
     # Here we detect if we are being called from linux-signed-image postinst,
     # and, if so, set flags to control grub-install's kernel signing behavior.
     PARENTCOMMAND="$(ps -o command= $PPID)"
-    for postfix in postinst postrm ; do
+    for postfix in postinst postrm; do
         if echo "$PARENTCOMMAND" | grep -q \
-            "linux-signed-image-.*\.$postfix"
-        then
+            "linux-signed-image-.*\.$postfix"; then
             KERNEL_VERSION="$(echo "$PARENTCOMMAND" | grep -o \
-                "linux-signed-image-.*\.$postfix" | \
+                "linux-signed-image-.*\.$postfix" |
                 sed -e "s/^linux-signed-image-//" -e "s/\.$postfix\$//")"
             # These magic variables are recognized by grub-install to get it to
             # sign a kernel.
             export SECURE_BOOT_KERNEL_HOOK=1
-            export SECURE_BOOT_KERNEL_PATH=\
-"/boot/vmlinuz-${KERNEL_VERSION}.efi.signed"
+            export SECURE_BOOT_KERNEL_PATH="/boot/vmlinuz-${KERNEL_VERSION}.efi.signed"
             export SECURE_BOOT_KERNEL_ACTION=$postfix
-            export SECURE_BOOT_SIGNED_SOURCE=\
-"/boot/vmlinuz-${KERNEL_VERSION}"
+            export SECURE_BOOT_SIGNED_SOURCE="/boot/vmlinuz-${KERNEL_VERSION}"
         fi
     done
 
+    # in case a user config script uses GPG
+    unset GNUPGHOME
+
     # Now, regenerate configuration and rerun grub-install.
-    unset GNUPGHOME # in case a user config script uses GPG
     grub-mkconfig -o /etc/debian-secure-boot/grub.cfg "$@"
-    if [ "$SECURE_BOOT_SIGN_ALL" = 1 ] ; then
+    if [ "$SECURE_BOOT_SIGN_ALL" = 1 ]; then
         grub-install --sign-all
     else
         grub-install
     fi
+
     # Some packages test for /boot/grub/grub.cfg in their maintenance scripts.
     # Just make sure the file exists.
     touch /boot/grub/grub.cfg
 else
-    unset GNUPGHOME # in case a user config script uses GPG
+    # in case a user config script uses GPG
+    unset GNUPGHOME
+
     # Our grub-install is going to call the original grub-install because the
     # user has not set up keys yet.  Therefore, we have to use the original
     # location.

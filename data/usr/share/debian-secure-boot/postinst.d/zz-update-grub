@@ -10,4 +10,4 @@ export SECURE_BOOT_KERNEL_PATH="$2"
 export SECURE_BOOT_KERNEL_ACTION=postinst
 export SECURE_BOOT_SIGNED_SOURCE=
 
-exec /etc/ubuntu-secure-boot/postinst.d/zz-update-grub
+exec /etc/debian-secure-boot/postinst.d/zz-update-grub

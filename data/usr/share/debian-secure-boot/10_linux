@@ -1,15 +1,15 @@
 #! /bin/sh
 set -e
 
-Cleanup () {
+Cleanup() {
     rm -f "$PATCHED"
 }
 
 # Apply our custom patch to the upstream 10_linux script, and then run it.
 PATCHED="$(mktemp)"
 trap Cleanup EXIT INT TERM
-patch -o "$PATCHED" /etc/ubuntu-secure-boot/10_linux.distrib \
-    < /usr/share/ubuntu-secure-boot/10_linux.patch 1>&2
+patch -o "$PATCHED" /etc/debian-secure-boot/10_linux.distrib \
+    </usr/share/debian-secure-boot/10_linux.patch 1>&2
 chmod +x "$PATCHED" 1>&2
 
 "$PATCHED"

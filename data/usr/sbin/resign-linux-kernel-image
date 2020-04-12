@@ -1,5 +1,4 @@
 #!/bin/sh
-
 # Signs a kernel image specified explicitly by name.
 
 # Example: If you need to manually sign a distribution-signed kernel (e.g. after
@@ -12,12 +11,13 @@ set -e
 explicit_sign=""
 while getopts "s:" opt; do
     case "$opt" in
-    s)  explicit_sign="$OPTARG"
+    s)
+        explicit_sign="$OPTARG"
         ;;
     esac
 done
 
-if [ -n "$explicit_sign" ] ; then
+if [ -n "$explicit_sign" ]; then
     # The linux-signed-image package postinst script will happily succeed even
     # if this script returns non-zero (e.g. unable to prompt for passphrase
     # during unattended installation).  That will leave the system unbootable.
