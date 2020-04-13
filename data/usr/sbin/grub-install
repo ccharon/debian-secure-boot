@@ -34,7 +34,7 @@ export GNUPGHOME="$KEYDIR"
 
 log() {
     logger -t grub-install "$*"
-    echo >&2 "$*"
+    >&2 echo "$*"
 }
 
 set -e

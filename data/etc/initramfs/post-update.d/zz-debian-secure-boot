@@ -4,7 +4,7 @@ set -e
 
 log() {
     logger -t zz-debian-secure-boot "$*"
-    echo >&2 "$*"
+    >&2 echo "$*"
 }
 
 log "update initramfs hook: $*"
