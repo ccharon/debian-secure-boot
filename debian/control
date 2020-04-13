@@ -1,14 +1,14 @@
 Source: debian-secure-boot
 Section: utils
 Priority: extra
-Maintainer: James Johnston <johnstonj.public@codenest.com>
+Maintainer: Christian Charon <christian.charon@mailbox.org>
 Build-Depends: debhelper (>= 9)
 Standards-Version: 3.9.6
-Homepage: https://github.com/JohnstonJ/ubuntu-secure-boot
-Vcs-Git: https://github.com/JohnstonJ/ubuntu-secure-boot.git
-Vcs-Browser: https://github.com/JohnstonJ/ubuntu-secure-boot
+Homepage: https://github.com/ccharon/debian-secure-boot
+Vcs-Git: https://github.com/ccharon/debian-secure-boot.git
+Vcs-Browser: https://github.com/ccharon/debian-secure-boot
 
-Package: ubuntu-secure-boot
+Package: debian-secure-boot
 # Currently this is only tested and designed for 64-bit EFI:
 Architecture: amd64
 # Currently only tested on very recent versions of GRUB/gnupg:
@@ -16,7 +16,7 @@ Depends: ${misc:Depends}, grub-efi-amd64 (>= 2.02+dfsg1-20),
     gnupg (>= 1.4.18), pinentry-curses (>= 1.0.0), efibootmgr (>= 0.12), openssl (>= 1.0.2),
     uuid-runtime (>= 2.26.2), efitools (>= 1.4.2), sbsigntool (>= 0.6),
     patch (>= 2.7.5)
-# shim should be removed; it is signed by Canonical/Microsoft
+# shim should be removed; it is signed by Debian/Microsoft
 # and degrades boot security.
 Conflicts: shim, shim-signed
 Description: Proper secure boot for Debian
