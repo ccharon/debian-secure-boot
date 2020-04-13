@@ -1,4 +1,5 @@
 debian-secure-boot (0.1.0) unstable; urgency=low
 
   [ Christian Charon ]
+
   * Initial Release. (adapted from ubuntu-secure-boot (0.1.7ubuntu1)
