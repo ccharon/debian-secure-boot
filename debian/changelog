@@ -1,6 +1,6 @@
-debian-secure-boot (0.1.0) UNRELEASED; urgency=low
+debian-secure-boot (0.1.7) UNRELEASED; urgency=low
 
-  * Initial Release. (adapted from ubuntu-secure-boot (0.1.7ubuntu1)
+  * refactor: changing Ubuntu references and versions to Debian
 
  -- Christian Charon <christian.charon@mailbox.org>  Mon, 13 Apr 2020 10:50:00 +0100
 

@@ -2,7 +2,7 @@ Template: debian-secure-boot/passphrase
 Type: password
 Description: Enter the passphrase for secure boot private keys:
  The debian-secure-boot package was used to generate private keys for signing
- boot files, such as bootloaders and kernels.  Enter the passphrase for these
+ boot files, such as bootloaders and kernels. Enter the passphrase for these
  keys so that the boot files can be signed.
 
 Template: debian-secure-boot/retrypassphrase

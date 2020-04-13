@@ -21,16 +21,16 @@ Depends: ${misc:Depends}, grub-efi-amd64 (>= 2.02+dfsg1-20),
 Conflicts: shim, shim-signed
 Description: Proper secure boot for Debian
  The stock Debian 10 installation only implements secure boot just enough
- to get a Microsoft-signed shim in place.  It does nothing to actually secure
- the boot process.  This package can help users do so.
+ to get a Microsoft-signed shim in place. It does nothing to actually secure
+ the boot process. This package can help users do so.
  .
  Assumptions: (1) 64-bit computer booting via EFI, (2) full disk encryption
- is used.  While this package will install without full disk encryption, it
+ is used. While this package will install without full disk encryption, it
  does nothing to secure the booted operating system beyond signing the kernel
- and initramfs.  Private keys are stored within the /etc directory, so this
- must be secured as well.  Note that the /boot partition may remain
+ and initramfs. Private keys are stored within the /etc directory, so this
+ must be secured as well. Note that the /boot partition may remain
  unencrypted, as one purpose of this package is to secure it.
  .
- After installing, you will need to run make-secure-boot-keys.  Then, you will
+ After installing, you will need to run make-secure-boot-keys. Then, you will
  need to enable secure boot in your system firmware and import the generated
  keys into the configuration.

@@ -4,13 +4,13 @@ Source: https://github.com/ccharon/debian-secure-boot
 
 Files: *
 Copyright: 2020, Christian Charon <christian.charon@mailbox.org>
-           2017, Don Bowman <db@donbowman.ca>
+           2020, Don Bowman <db@donbowman.ca>
            2016, James Johnston <johnstonj.public@codenest.com>
 License: MIT
 
 Files: debian/*
 Copyright: 2020, Christian Charon <christian.charon@mailbox.org>
-           2017, Don Bowman <db@donbowman.ca>
+           2020, Don Bowman <db@donbowman.ca>
            2016, James Johnston <johnstonj.public@codenest.com>
 License: MIT
 

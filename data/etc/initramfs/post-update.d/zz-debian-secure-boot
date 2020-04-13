@@ -3,7 +3,7 @@
 set -e
 
 log() {
-    logger -t zz-ubuntu-secure-boot "$*"
+    logger -t zz-debian-secure-boot "$*"
     echo >&2 "$*"
 }
 
@@ -11,7 +11,7 @@ log "update initramfs hook: $*"
 
 if [ -z "$2" ]; then
     # Required parameter (path to initramfs file) is missing.
-    log "Required parameter to zz-ubuntu-secure-boot initramfs " \
+    log "Required parameter to zz-debian-secure-boot initramfs " \
         "hook was missing."
     exit 1
 fi
