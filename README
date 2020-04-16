@@ -1,3 +1,5 @@
+IT DOES NOT WORK ... Debian has a GRUB Patch that makes SHIM mandatory to load a signed kernel...
+
 debian-secure-boot package
 --------------------------
 
